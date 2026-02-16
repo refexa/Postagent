@@ -122,6 +122,11 @@ linkedin-post-agent/
 
    # Base URL for OAuth callbacks
    BASE_URL=http://localhost:8000
+
+   # Optional: customize Ollama prompts (use \n for new lines)
+   # Supports placeholders: {title}, {summary}, {url}, {article_content}, {content_section}
+   OLLAMA_SYSTEM_PROMPT=
+   OLLAMA_USER_PROMPT=
    ```
 
 ## Usage
@@ -250,6 +255,11 @@ Posts are automatically generated with:
 - No empty posts
 - URLs normalized to prevent duplicates
 - Tracking parameters removed
+
+**Ollama prompt customization**:
+- Set `OLLAMA_SYSTEM_PROMPT` to override the system prompt
+- Set `OLLAMA_USER_PROMPT` to override the user prompt template
+- Templates can use `{title}`, `{summary}`, `{url}`, `{article_content}`, and `{content_section}`
 
 ## Security & Safety
 

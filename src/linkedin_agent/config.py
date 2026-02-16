@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "llama3.2"
     ai_enabled: bool = True
+    ollama_system_prompt: str = ""
+    ollama_user_prompt: str = ""
 
     # Unsplash API Configuration
     unsplash_access_key: str = ""  # Get from https://unsplash.com/developers

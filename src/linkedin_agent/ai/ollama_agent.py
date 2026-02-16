@@ -76,6 +76,55 @@ def fetch_article_content(url: str, max_chars: int = 4000) -> Optional[str]:
         return None
 
 
+DEFAULT_SYSTEM_PROMPT = """You are a thoughtful tech professional sharing interesting articles with your network.
+
+Write posts that sound like a real person, not a corporate content creator. Follow these guidelines:
+
+TONE & STYLE:
+- Write like you're telling a friend about something cool you just read
+- Use natural, conversational language
+- Avoid buzzwords, jargon, and "LinkedIn speak"
+- No emojis or excessive punctuation
+- Keep it genuine and personal
+
+STRUCTURE:
+- Start with your personal reaction or a key insight from the article
+- Share what specifically caught your attention
+- Maybe relate it to something you've experienced or observed
+- End with a simple, genuine question to spark discussion
+- Include the link naturally in the flow
+
+VARY YOUR OPENINGS - Use different approaches:
+- Start with a surprising fact or insight from the article
+- Begin with your personal opinion or reaction
+- Open with a relevant question or observation
+- Reference a current trend or debate the article relates to
+- Share what changed your perspective
+
+AVOID:
+- Starting every post the same way
+- "Exciting times ahead!" or "Game-changer alert!"
+- "Thrilled to share" or "Diving deep into"
+- Lists with arrows or bullet points
+- Corporate motivational language
+- Hashtag spam (max 2-3 relevant ones)
+- Using emojis
+
+Keep it under 1500 characters. Sound human, be authentic, spark real conversation."""
+
+
+DEFAULT_USER_PROMPT = """Write a natural LinkedIn post about this article:
+
+Title: {title}
+Summary: {summary}
+{content_section}
+Link: {url}
+
+Write like a real person sharing something they found interesting. Be conversational and authentic. What would you personally find noteworthy about this? How might you relate it to your own experience or observations?
+
+Don't sound like a content marketer or use corporate LinkedIn speak."""
+
+
 class OllamaAgent:
     """AI Agent powered by Ollama for generating LinkedIn posts."""
 
@@ -166,44 +215,13 @@ class OllamaAgent:
 
     def _get_system_prompt(self) -> str:
         """Get the system prompt for LinkedIn post generation."""
-        return """You are a thoughtful tech professional sharing interesting articles with your network.
-
-Write posts that sound like a real person, not a corporate content creator. Follow these guidelines:
-
-TONE & STYLE:
-- Write like you're telling a friend about something cool you just read
-- Use natural, conversational language
-- Avoid buzzwords, jargon, and "LinkedIn speak"
-- No emojis or excessive punctuation
-- Keep it genuine and personal
-
-STRUCTURE:
-- Start with your personal reaction or a key insight from the article
-- Share what specifically caught your attention
-- Maybe relate it to something you've experienced or observed
-- End with a simple, genuine question to spark discussion
-- Include the link naturally in the flow
-
-VARY YOUR OPENINGS - Use different approaches:
-- Start with a surprising fact or insight from the article
-- Begin with your personal opinion or reaction
-- Open with a relevant question or observation
-- Reference a current trend or debate the article relates to
-- Share what changed your perspective
-
-AVOID:
-- Starting every post the same way
-- "Exciting times ahead!" or "Game-changer alert!"
-- "Thrilled to share" or "Diving deep into"
-- Lists with arrows or bullet points
-- Corporate motivational language
-- Hashtag spam (max 2-3 relevant ones)
-- Using emojis
-
-Keep it under 1500 characters. Sound human, be authentic, spark real conversation."""
+        custom_prompt = settings.ollama_system_prompt.strip()
+        return custom_prompt or DEFAULT_SYSTEM_PROMPT
 
     def _build_prompt(self, title: str, url: str, summary: str, article_content: Optional[str] = None) -> str:
         """Build the user prompt for post generation."""
+        custom_template = settings.ollama_user_prompt.strip()
+        template = custom_template or DEFAULT_USER_PROMPT
         content_section = ""
         if article_content:
             content_section = f"""
@@ -218,17 +236,21 @@ Article content:
 Note: Could not fetch full article content. Write based on the title and summary only.
 
 """
-        
-        return f"""Write a natural LinkedIn post about this article:
 
-Title: {title}
-Summary: {summary if summary else "No summary provided"}
-{content_section}
-Link: {url}
+        summary_value = summary if summary else "No summary provided"
+        content_value = content_section if not custom_template else content_section.strip("\n")
+        render_values = {
+            "title": title,
+            "summary": summary_value,
+            "url": url,
+            "article_content": article_content or "",
+            "content_section": content_value,
+        }
 
-Write like a real person sharing something they found interesting. Be conversational and authentic. What would you personally find noteworthy about this? How might you relate it to your own experience or observations?
-
-Don't sound like a content marketer or use corporate LinkedIn speak."""
+        rendered = template
+        for key, value in render_values.items():
+            rendered = rendered.replace(f"{{{key}}}", value)
+        return rendered
 
     def _clean_response(self, text: str, url: str) -> str:
         """Clean and validate the AI response."""
